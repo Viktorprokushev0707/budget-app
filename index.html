@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Семейный бюджет</title>
+  <style>
+    body { font-family: sans-serif; max-width: 400px; margin: 30px auto; background: #f9f9f9; }
+    h2 { text-align: center; }
+    label, select, input, button { display: block; width: 100%; margin-bottom: 12px; font-size: 1rem; }
+    .balance { margin-top: 20px; background: #f1f1f1; padding: 12px; border-radius: 8px; font-size: 1.1rem; }
+    #msg { margin-top: 10px; color: #257100; font-weight: bold; min-height: 22px;}
+    button { padding: 10px; background: #4596e6; color: white; border: none; border-radius: 6px; font-size: 1rem; }
+    button:hover { background: #3570b5; }
+  </style>
+</head>
+<body>
+  <h2>Семейный бюджет</h2>
+
+  <label>Месяц:
+    <select id="sheet">
+      <option value="январь_25_1">январь_25_1</option>
+      <option value="декабрь 24">декабрь 24</option>
+      <option value="Апрель 25">Апрель 25</option>
+      <option value="Май 2025" selected>Май 2025</option>
+      <option value="Июнь 2025">Июнь 2025</option>
+    </select>
+  </label>
+  <label>Дата:
+    <input type="date" id="date" />
+  </label>
+
+  <div class="balance">
+    <div>Траты за день: <span id="expense">-</span> ₽</div>
+    <div>Бюджет на день: <span id="budget">-</span> ₽</div>
+  </div>
+
+  <hr>
+
+  <label>Добавить трату:</label>
+  <input type="number" id="amount" min="1" step="1" placeholder="Сумма, ₽" />
+  <input type="text" id="comment" maxlength="100" placeholder="Описание (необязательно)" />
+  <button id="addBtn">Добавить</button>
+
+  <div id="msg"></div>
+
+  <script>
+    // ВСТАВЬ СВОЙ URL Apps Script ниже (или оставь как есть, если не менялся):
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz7XnQcNOHbilh3vhjIReP77HvufQ0FuADZWCI1sXQ5L-qNEqoMYrs5L_QpD3Fspm_a/exec';
+
+    // Ставим сегодняшнюю дату по умолчанию
+    document.getElementById('date').valueAsDate = new Date();
+
+    // Получить траты и бюджет на выбранный день
+    async function getDayInfo() {
+      const sheet = document.getElementById('sheet').value;
+      const date = document.getElementById('date').value;
+      if (!date) return;
+      try {
+        const res = await fetch(`${API_URL}?sheet=${encodeURIComponent(sheet)}&date=${encodeURIComponent(date)}`);
+        const data = await res.json();
+        document.getElementById('expense').textContent = data.expense ?? '0';
+        document.getElementById('budget').textContent = data.budget ?? '0';
+      } catch (e) {
+        document.getElementById('expense').textContent = 'Ошибка';
+        document.getElementById('budget').textContent = 'Ошибка';
+      }
+    }
+
+    // Слушатели для смены месяца и даты
+    document.getElementById('sheet').onchange = getDayInfo;
+    document.getElementById('date').onchange = getDayInfo;
+    window.onload = getDayInfo;
+
+    // Добавление траты
+    document.getElementById('addBtn').onclick = async function () {
+      const sheet = document.getElementById('sheet').value;
+      const date = document.getElementById('date').value;
+      const amount = document.getElementById('amount').value;
+      const comment = document.getElementById('comment').value;
+      const author = (window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe?.user?.username) || "anon";
+      if (!date || !amount) {
+        document.getElementById('msg').textContent = 'Заполни дату и сумму!';
+        return;
+      }
+      document.getElementById('msg').textContent = 'Сохраняем...';
+      try {
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          body: JSON.stringify({ sheet, date, amount, comment, author }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.status === "ok") {
+          document.getElementById('msg').textContent = "Трата добавлена!";
+          document.getElementById('amount').value = '';
+          document.getElementById('comment').value = '';
+          getDayInfo();
+        } else {
+          document.getElementById('msg').textContent = data.error || "Ошибка!";
+        }
+      } catch {
+        document.getElementById('msg').textContent = "Ошибка запроса!";
+      }
+    };
+  </script>
+</body>
+</html>
