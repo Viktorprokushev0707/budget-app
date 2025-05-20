@@ -32,6 +32,7 @@
   <div class="balance">
     <div>Траты за день: <span id="expense">-</span> ₽</div>
     <div>Бюджет на день: <span id="budget">-</span> ₽</div>
+    <div>Описание: <span id="description">-</span></div>
   </div>
 
   <hr>
@@ -44,13 +45,11 @@
   <div id="msg"></div>
 
   <script>
-    // ВСТАВЬ СВОЙ URL Apps Script ниже (или оставь как есть, если не менялся):
-    const API_URL = 'https://script.google.com/macros/s/AKfycbyTZe4I1MZlAvFb0294Zdp16psewXdV2hiWftMHEpLsEdwAwpI7ipvFqmzRQ7RCIHwp/exec';
+    // ВСТАВЬ СВОЙ URL Apps Script ниже!
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwdkisCOYfISg9D6-J1J-RA_tGzMLvygTmZJ2BnbRdzocE-b7FZ0otg40_NJiIuUdbk/exec';
 
-    // Ставим сегодняшнюю дату по умолчанию
     document.getElementById('date').valueAsDate = new Date();
 
-    // Получить траты и бюджет на выбранный день
     async function getDayInfo() {
       const sheet = document.getElementById('sheet').value;
       const date = document.getElementById('date').value;
@@ -59,19 +58,19 @@
         const res = await fetch(`${API_URL}?sheet=${encodeURIComponent(sheet)}&date=${encodeURIComponent(date)}`);
         const data = await res.json();
         document.getElementById('expense').textContent = data.expense ?? '0';
-        document.getElementById('budget').textContent = data.budget ?? '0';
+        document.getElementById('budget').textContent = data.budget !== undefined ? Math.round(data.budget) : '0';
+        document.getElementById('description').textContent = data.description ?? '-';
       } catch (e) {
         document.getElementById('expense').textContent = 'Ошибка';
         document.getElementById('budget').textContent = 'Ошибка';
+        document.getElementById('description').textContent = 'Ошибка';
       }
     }
 
-    // Слушатели для смены месяца и даты
     document.getElementById('sheet').onchange = getDayInfo;
     document.getElementById('date').onchange = getDayInfo;
     window.onload = getDayInfo;
 
-    // Добавление траты
     document.getElementById('addBtn').onclick = async function () {
       const sheet = document.getElementById('sheet').value;
       const date = document.getElementById('date').value;
